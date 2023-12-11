@@ -36,11 +36,6 @@ const saveDataToFile = async () => {
   }
 };
 
-// Example routes
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
-
 // Route to handle POST requests and store data
 app.post("/api/data", (req, res) => {
   const newData = req.body;
@@ -48,15 +43,66 @@ app.post("/api/data", (req, res) => {
   if (newData) {
     dataStore.push(newData);
     saveDataToFile(); // Save data to file after each update
-    res.status(201).json({ message: "Data successfully added", data: newData });
+    res
+      .status(201)
+      .json({ message: "Data successfully added", data: { items: [newData] } });
   } else {
     res.status(400).json({ error: "Invalid data format" });
   }
 });
 
-// Route to get stored data
+// Route to get all data
 app.get("/api/data", (req, res) => {
   res.json({ data: dataStore });
+});
+
+// Route to get a specific item by ID
+app.get("/api/data/:id", (req, res) => {
+  const itemId = req.params.id;
+  const item = dataStore.find((item) => item.id === itemId);
+
+  if (item) {
+    res.json({ data: { items: [item] } });
+  } else {
+    res.status(404).json({ error: "Item not found" });
+  }
+});
+
+// Route to handle PATCH requests and update data
+app.patch("/api/data/:id", (req, res) => {
+  const itemId = req.params.id;
+  const updatedData = req.body;
+
+  const index = dataStore.findIndex((item) => item.id === itemId);
+
+  if (index !== -1) {
+    dataStore[index] = { ...dataStore[index], ...updatedData };
+    saveDataToFile(); // Save data to file after each update
+    res.status(200).json({
+      message: "Data successfully updated",
+      data: { items: [dataStore[index]] },
+    });
+  } else {
+    res.status(404).json({ error: "Item not found" });
+  }
+});
+
+// Route to handle DELETE requests and remove data
+app.delete("/api/data/:id", (req, res) => {
+  const itemId = req.params.id;
+
+  const index = dataStore.findIndex((item) => item.id === itemId);
+
+  if (index !== -1) {
+    const deletedItem = dataStore.splice(index, 1)[0];
+    saveDataToFile(); // Save data to file after each update
+    res.status(200).json({
+      message: "Data successfully deleted",
+      data: { items: [deletedItem] },
+    });
+  } else {
+    res.status(404).json({ error: "Item not found" });
+  }
 });
 
 app.post("/", (req, res) => {
@@ -65,14 +111,6 @@ app.post("/", (req, res) => {
 
 app.put("/:id", (req, res) => {
   res.status(200).send("thanks for updating something");
-});
-
-app.patch("/:id", (req, res) => {
-  res.status(200).send("thanks for updating something");
-});
-
-app.delete("/:id", (req, res) => {
-  res.status(200).send("thanks for deleting something");
 });
 
 app.listen(port, () => {
